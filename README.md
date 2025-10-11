@@ -1,1 +1,1885 @@
-# Calcilateur
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TAXIS 24 • Calculateur de Prix</title>
+
+  <!-- Fonts & Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&family=Oxanium:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+  <style>
+    /* RESET MINIMAL POUR ÉVITER LES CONFLITS */
+    .taxi-calculator-container,
+    .taxi-calculator-container * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    .taxi-calculator-container {
+      /* Variables CSS */
+      --bg:#f6f8fc; --ink:#0e172a; --muted:#6b7896;
+      --panel:#ffffffee; --panel-strong:#ffffffff; --stroke:#e4e9f4;
+      --accent:#ffc300; --accent-ink:#0b0b0b;
+      --ok:#2fd27c; --bad:#ff5d6c;
+
+      /* FX */
+      --shadow:0 18px 40px rgba(16,38,85,.10), 0 3px 10px rgba(16,38,85,.06);
+      --blur:16px; --goldglow:0 16px 40px rgba(255,199,0,.28);
+
+      /* Controls */
+      --input-h:68px;
+      --input-font:18px;
+
+      /* Styles de base */
+      font-family:'Manrope',system-ui,Segoe UI,Roboto,Arial,sans-serif;
+      color:var(--ink);
+      background:
+        radial-gradient(1100px 600px at 10% -10%, #ffffff, transparent 60%),
+        radial-gradient(900px 600px at 90% 10%, #ffffff, transparent 60%),
+        var(--bg);
+      min-height: 100vh;
+      -webkit-text-size-adjust:100%;
+      padding: 0;
+    }
+
+    .taxi-calculator-container h1,
+    .taxi-calculator-container h2,
+    .taxi-calculator-container h3 {
+      margin:0 0 10px;
+      font-family:'Oxanium',system-ui,sans-serif;
+      letter-spacing:.2px;
+    }
+
+    /* ================= Top bar - 100% TRANSPARENT, NO BORDER ================= */
+    .taxi-calculator-container .brandbar{
+      position:sticky;top:0;height:62px;background:transparent;
+      z-index:100;
+      display:flex;align-items:center;justify-content:center;
+    }
+    .taxi-calculator-container .brandbar .inner{width:100%;display:flex;align-items:center;gap:12px;padding:0 clamp(10px,3vw,20px)}
+    .taxi-calculator-container .spacer{flex:1}
+
+    /* Clean chips & dropdowns */
+    .taxi-calculator-container .chip-btn{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:10px 12px;border-radius:14px;background:#fff;border:1px solid var(--stroke);
+      font-weight:800;color:#1d2640;box-shadow:var(--shadow);cursor:pointer;user-select:none;
+      transition:transform .05s ease, box-shadow .2s ease;
+    }
+    .taxi-calculator-container .chip-btn:active{transform:translateY(1px)}
+    .taxi-calculator-container .chip-btn img{width:18px;height:14px;border-radius:2px}
+    .taxi-calculator-container .dropdown{position:relative}
+    .taxi-calculator-container .drop-menu{
+      position:absolute;right:0;top:calc(100% + 8px);min-width:220px;z-index:120;
+      background:rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border:1px solid var(--stroke);border-radius:14px;display:none;padding:6px;
+      box-shadow:0 20px 44px rgba(16,38,85,.15);
+    }
+    .taxi-calculator-container .dropdown.open .drop-menu{display:block}
+    .taxi-calculator-container .drop-item{
+      display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;cursor:pointer;
+      font-weight:700;color:#12203f;
+    }
+    .taxi-calculator-container .drop-item:hover{background:rgba(243, 247, 255, 0.7)}
+    .taxi-calculator-container .drop-item img{width:18px;height:13px;border-radius:2px}
+
+    /* Tiny hero */
+    .taxi-calculator-container .hero3d{
+      position:absolute; right:14px; top:74px; width:140px; height:110px; pointer-events:none;
+      filter:drop-shadow(0 12px 26px rgba(0,0,0,.12));
+    }
+    .taxi-calculator-container .hero3d .cube{width:100%; height:100%; transform-style:preserve-3d; animation: floaty 6.4s ease-in-out infinite, spin 18s linear infinite;}
+    .taxi-calculator-container .hero3d img{width:100%; height:100%; object-fit:contain; transform: translateZ(34px) rotateY(10deg);}
+    @keyframes floaty{0%{transform:translateY(0)}50%{transform:translateY(-10px)}100%{transform:translateY(0)}}
+    @keyframes spin{0%{transform:rotateY(0)}100%{transform:rotateY(360deg)}}
+
+    /* ================= Edge-to-edge stage WITH SHADOW ================= */
+    .taxi-calculator-container .card{
+      position:relative;overflow:hidden;background:var(--panel);backdrop-filter: blur(var(--blur));
+      border:0;border-radius:24px;box-shadow:var(--shadow);
+      width:calc(100vw - 32px);min-height:calc(100vh - 94px);
+      padding: clamp(12px, 4vw, 32px);
+      margin: 0 auto;
+    }
+    .taxi-calculator-container .card::before{content:"";position:absolute;inset:auto 0 0 0;height:180px;pointer-events:none;
+      background:radial-gradient(100% 100% at 50% 0%, rgba(255,199,0,.16), transparent 70%);
+    }
+
+    /* ================= Progress ================= */
+    .taxi-calculator-container .progress{margin:6px 0 18px}
+    .taxi-calculator-container .progress__rail{
+      height:14px;border-radius:999px;border:1px solid var(--stroke);background:#ffffff;position:relative;overflow:hidden;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.8), 0 6px 22px rgba(16,38,85,.10);
+    }
+    .taxi-calculator-container .progress__bar{
+      --w:10%;
+      position:absolute;left:0;top:0;height:100%;width:var(--w);
+      background:linear-gradient(90deg, #ffe372 0%, #ffc300 40%, #ffb000 70%, #ffe372 100%);
+      background-size:200% 100%;animation:barShift 2.2s linear infinite;
+      box-shadow:0 0 12px rgba(255,195,0,.45), inset 0 6px 14px rgba(255,185,0,.35);
+    }
+    @keyframes barShift{0%{background-position:0 0}100%{background-position:200% 0}}
+    .taxi-calculator-container .progress__steps{
+      margin-top:10px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;color:#27324d;font-weight:800;text-shadow:0 1px 0 rgba(255,255,255,.75);
+    }
+    .taxi-calculator-container .pstep{display:flex;flex-direction:column;align-items:center;gap:6px}
+    .taxi-calculator-container .pstep .dot{
+      width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:#fff;border:1px solid var(--stroke);color:#1f2740;font-size:12px;
+      box-shadow:0 2px 8px rgba(16,38,85,.08), inset 0 0 10px rgba(120,160,255,.10);
+    }
+    .taxi-calculator-container .pstep.active .dot{
+      background:radial-gradient(circle at 50% 40%, #fff, #f7fbff 70%) padding-box,
+                 linear-gradient(120deg, #7ccfff, #9b8bff, #ffc300) border-box;
+      border:2px solid transparent;box-shadow:0 0 12px rgba(100,210,255,.35), 0 0 22px rgba(255,195,0,.18);
+    }
+    .taxi-calculator-container .pstep span{opacity:.9;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+    /* ================= Inputs ================= */
+    .taxi-calculator-container .flabel{display:none}
+    .taxi-calculator-container label{font-weight:800;margin:6px 0 6px;display:block;font-size:12px;color:#33405f}
+
+    .taxi-calculator-container .row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:stretch;}
+    .taxi-calculator-container .col{min-width:0}
+    .taxi-calculator-container .row.two{grid-template-columns:repeat(2,minmax(0,1fr));}
+
+    .taxi-calculator-container .field{position:relative}
+    .taxi-calculator-container .field .icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--accent);font-size:18px;pointer-events:none}
+
+    /* Bigger inputs + no clipping of long text */
+    .taxi-calculator-container .field input,
+    .taxi-calculator-container .field select,
+    .taxi-calculator-container .field textarea{
+      height:var(--input-h);width:100%;
+      padding:16px 56px 16px 46px;border-radius:16px;background:linear-gradient(180deg,#fff,rgba(255,255,255,.9));
+      border:1px solid var(--stroke);color:var(--ink);outline:none;font-size:var(--input-font);line-height:1.25;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.9), 0 10px 22px rgba(16,38,85,.08);
+      transition:box-shadow .2s ease, border-color .2s ease, transform .03s ease, background .25s;
+      white-space:normal;overflow-x:auto;overflow-y:hidden;text-overflow:clip;caret-color:#111;
+    }
+    /* Date/Time fully visible */
+    .taxi-calculator-container input[type="date"],
+    .taxi-calculator-container input[type="time"]{
+      -webkit-appearance:none; appearance:none;
+      font-variant-numeric:tabular-nums;
+      font-size:var(--input-font);
+      white-space:nowrap; overflow:hidden; text-overflow:clip;
+    }
+    .taxi-calculator-container input[type="date"]::-webkit-datetime-edit,
+    .taxi-calculator-container input[type="time"]::-webkit-datetime-edit{padding:0 2px}
+    .taxi-calculator-container input[type="date"]::-webkit-calendar-picker-indicator,
+    .taxi-calculator-container input[type="time"]::-webkit-calendar-picker-indicator{opacity:.9; cursor:pointer}
+
+    .taxi-calculator-container .field input::placeholder,
+    .taxi-calculator-container .field textarea::placeholder{color:#9aa9c7}
+    .taxi-calculator-container .field input:focus,
+    .taxi-calculator-container .field select:focus,
+    .taxi-calculator-container .field textarea:focus{
+      border-color:#ffd463;box-shadow:0 0 0 8px rgba(255,199,0,.14), 0 0 18px rgba(160,150,255,.12), inset 0 1px 0 rgba(255,255,255,.8);
+      background:linear-gradient(180deg,#fff,#f7fbff)
+    }
+    .taxi-calculator-container .field.invalid input,
+    .taxi-calculator-container .field.invalid textarea{border-color:var(--bad);box-shadow:0 0 0 8px rgba(255,93,108,.10), inset 0 1px 0 rgba(255,255,255,.8)}
+    .taxi-calculator-container .right-count{position:absolute;right:10px;top:50%;transform:translateY(-50%);min-width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-weight:900;background:#fff;border:1px solid var(--stroke);color:#3b4561;box-shadow:inset 0 1px 0 rgba(255,255,255,.8)}
+
+    /* Radios / checkboxes as chips */
+    .taxi-calculator-container input[type=radio],
+    .taxi-calculator-container input[type=checkbox]{accent-color:var(--accent)}
+    .taxi-calculator-container .option-row{display:flex;gap:16px;margin-top:6px;flex-wrap:wrap}
+    .taxi-calculator-container .chip-toggle{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--stroke);border-radius:999px;background:#fff;cursor:pointer;box-shadow:0 6px 14px rgba(16,38,85,.06);font-weight:800}
+    .taxi-calculator-container .chip-toggle input{transform:scale(1.1)}
+
+    /* Phone "code + number" — compact chip next to the main input */
+    .taxi-calculator-container .phone-join{display:flex;gap:10px;align-items:center}
+    .taxi-calculator-container .prefix-chip{
+      flex:0 0 78px;height:var(--input-h);display:grid;place-items:center;
+      background:#fff;border:1px solid var(--stroke);border-radius:16px;font-weight:900;color:#223055;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.9), 0 8px 18px rgba(16,38,85,.06);
+      font-size:14px;
+    }
+    .taxi-calculator-container .prefix-chip input{
+      all:unset;width:100%;text-align:center;font-weight:900;font-size:14px;
+    }
+
+    /* Wizard panes */
+    .taxi-calculator-container .wizard{background:#ffffff; border-radius: 20px;}
+    .taxi-calculator-container .wizard-rail{display:block}
+    .taxi-calculator-container .pane{display:none;padding:12px 0}
+    .taxi-calculator-container .wizard.step-1 .pane:nth-child(1),
+    .taxi-calculator-container .wizard.step-2 .pane:nth-child(2),
+    .taxi-calculator-container .wizard.step-3 .pane:nth-child(3){display:block}
+
+    /* Vehicles list */
+    .taxi-calculator-container .veh-list{display:flex;flex-direction:column;gap:18px;margin-top:12px}
+    .taxi-calculator-container .veh-card{
+      background:linear-gradient(180deg,#ffffff,#f7fbff);
+      border:2px solid var(--stroke);border-radius:20px;padding:16px;position:relative;color:#0e172a;
+      box-shadow:var(--shadow);cursor:pointer;transform-style:preserve-3d;transition:transform .25s ease, box-shadow .25s ease, border-color .2s ease, background .25s;width:100%;
+    }
+    .taxi-calculator-container .veh-card:hover{transform:translateY(-3px) rotateX(2deg) rotateY(-1.5deg)}
+    .taxi-calculator-container .veh-card.selected{border-color:#ffcd33;box-shadow:0 0 0 4px rgba(251,195,3,.18), 0 18px 36px rgba(255,195,0,.12);background:linear-gradient(180deg,#fffef4,#fff8d6)}
+    .taxi-calculator-container .veh-top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+    .taxi-calculator-container .veh-pill{background:var(--accent);color:#111;padding:6px 12px;border-radius:999px;font-weight:900;font-size:12px;white-space:nowrap}
+    .taxi-calculator-container .veh-name{font-weight:900;font-size:18px}
+    .taxi-calculator-container .veh-img{height:140px;display:flex;align-items:center;justify-content:center;margin:8px 0;background:#f3f7ff;border-radius:12px}
+    .taxi-calculator-container .veh-img img{max-width:100%;max-height:100%}
+    .taxi-calculator-container .veh-meta{display:flex;flex-wrap:wrap;gap:8px 10px;font-size:13px;color:#41507a;margin:6px 0}
+    .taxi-calculator-container .veh-meta .tag{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--stroke);border-radius:999px;background:#fff}
+    .taxi-calculator-container .veh-price{font-weight:900;font-size:22px;margin:10px 0}
+    .taxi-calculator-container .veh-note{font-size:12px;color:#6b7896}
+
+    /* Features list - HORIZONTAL ET NOIR */
+    .taxi-calculator-container .features {
+      list-style: none;
+      margin: 8px 0 0 0;
+      padding: 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .taxi-calculator-container .features li {
+      font-size: 12px;
+      color: #000000; /* NOIR */
+      display: flex;
+      align-items: center;
+    }
+
+    /* Glowy icon CTA instead of «Suivant» */
+    .taxi-calculator-container .veh-cta{
+      position:absolute;right:14px;bottom:14px;border:0;cursor:pointer;
+      width:58px;height:58px;border-radius:50%;
+      display:grid;place-items:center;
+      background:radial-gradient(65% 65% at 50% 35%, #ffe372, #ffc300);
+      color:#0b0b0b;box-shadow:0 10px 22px rgba(255,195,0,.35), inset 0 0 0 2px rgba(255,185,0,.35);
+      animation:pulse 1.8s ease-in-out infinite;
+    }
+    .taxi-calculator-container .veh-cta i{font-size:22px}
+    .taxi-calculator-container .veh-cta::after{
+      content:""; position:absolute; inset:-8px; border-radius:50%;
+      box-shadow:0 0 0 0 rgba(255,195,0,.35); animation:ring 1.8s ease-out infinite;
+    }
+    @keyframes pulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.08)}}
+    @keyframes ring{0%{box-shadow:0 0 0 0 rgba(255,195,0,.35)}100%{box-shadow:0 0 0 16px rgba(255,195,0,0)}}
+
+    /* Summary */
+    .taxi-calculator-container .summary{border:1px solid var(--stroke);border-radius:16px;padding:16px;background:radial-gradient(70% 120% at 10% 0%, rgba(255,195,0,.12), transparent 60%),linear-gradient(180deg,#fff,#f7fbff);box-shadow:var(--shadow);margin-bottom:12px;color:var(--ink)}
+    .taxi-calculator-container .summary h3{font-size:13px;letter-spacing:.4px;text-transform:uppercase;margin-bottom:8px;color:#33405f}
+
+    /* Different return supplements styling */
+    .taxi-calculator-container .different-return-supplements{
+      border:1px solid var(--stroke);border-radius:16px;padding:14px;margin:10px 0;background:linear-gradient(180deg,#fff,#f7fbff);
+      box-shadow:var(--shadow);
+    }
+    .taxi-calculator-container .different-return-supplements-label{display:flex;align-items:center;gap:10px;font-weight:800}
+    .taxi-calculator-container .return-supplements-container{margin-top:12px}
+    .taxi-calculator-container .return-supplements-container h4{margin:0 0 10px;font-size:16px}
+    .taxi-calculator-container .luggage-options,
+    .taxi-calculator-container .supplement-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .taxi-calculator-container .luggage-option,
+    .taxi-calculator-container .supplement-option{display:flex;flex-direction:column;gap:6px}
+    .taxi-calculator-container .luggage-option input{height:var(--input-h);border:1px solid var(--stroke);border-radius:16px;padding:0 14px;font-size:var(--input-font);background:#fff}
+    .taxi-calculator-container .radio-group{display:flex;gap:12px;flex-wrap:wrap}
+    .taxi-calculator-container .radio-option{display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--stroke);border-radius:999px;background:#fff;font-weight:800}
+
+    /* Buttons */
+    .taxi-calculator-container .btn{
+      position: relative;
+      padding:18px 20px;border-radius:16px;border:0;cursor:pointer;font-family:'Oxanium',sans-serif;font-weight:800;
+      background:linear-gradient(90deg,#ffe372,#ffc300,#ffb000);color:#141414;
+      box-shadow:var(--goldglow),0 0 0 2px rgba(255,185,0,.18) inset;
+      transition:filter .15s ease, transform .03s ease, box-shadow .2s;
+      overflow: hidden;
+    }
+    .taxi-calculator-container .btn:hover{filter:saturate(1.06) brightness(1.04)}
+    .taxi-calculator-container .btn:active{transform:translateY(1px)}
+    .taxi-calculator-container .btn.secondary{background:#ffffff;color:#0e172a;border:1px solid var(--stroke);box-shadow:0 10px 24px rgba(16,38,85,.06)}
+    .taxi-calculator-container .btn[disabled]{opacity:.55;cursor:not-allowed}
+
+    /* Styles pour le bouton en état de chargement */
+    .taxi-calculator-container .btn--loading .button__text {
+      visibility: hidden;
+      opacity: 0;
+    }
+
+    .taxi-calculator-container .btn--loading::after {
+      content: "";
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      margin: auto;
+      border: 2px solid transparent;
+      border-top-color: #ffffff;
+      border-radius: 50%;
+      animation: button-loading-spinner 1s ease infinite;
+    }
+
+    /* Animation des trois points de chargement */
+    .taxi-calculator-container .loading-dots {
+      display: inline-block;
+      position: relative;
+    }
+
+    .taxi-calculator-container .loading-dots::after {
+      content: '...';
+      position: absolute;
+      animation: loading-dots 1.5s infinite;
+    }
+
+    @keyframes loading-dots {
+      0%, 20% { content: '.'; }
+      40% { content: '..'; }
+      60%, 100% { content: '...'; }
+    }
+
+    @keyframes button-loading-spinner {
+      from {
+        transform: rotate(0turn);
+      }
+      to {
+        transform: rotate(1turn);
+      }
+    }
+
+    /* Toast */
+    .taxi-calculator-container .toast{position:fixed;right:18px;bottom:18px;min-width:260px;max-width:420px;z-index:200;background:#ffffff;border:1px solid var(--stroke);border-radius:16px;box-shadow:var(--shadow);padding:12px 14px;display:grid;grid-template-columns:22px 1fr;gap:10px;opacity:0;transform:translateY(6px);pointer-events:none;transition:.25s;color:#0e172a}
+    .taxi-calculator-container .toast.show{opacity:1;transform:translateY(0)}
+    .taxi-calculator-container .toast .t-ico{color:var(--ok)}
+
+    /* Ski Package Indicator */
+    .taxi-calculator-container .ski-package-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      color: white;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: 14px;
+      margin: 8px 0;
+      animation: skiGlow 2s ease-in-out infinite alternate;
+      box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
+    }
+
+    @keyframes skiGlow {
+      0% { box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3); }
+      100% { box-shadow: 0 4px 20px rgba(79, 172, 254, 0.6); }
+    }
+
+    /* ======= Mobile ======= */
+    @media (max-width:600px){
+      .taxi-calculator-container{--input-h:60px; --input-font:12px}
+      .taxi-calculator-container .pane{padding:6px 0}
+      .taxi-calculator-container .hero3d{display:none}
+      .taxi-calculator-container .row{grid-template-columns:1fr}
+      .taxi-calculator-container .row.two{grid-template-columns:1fr 1fr}
+      .taxi-calculator-container .right-count{display:none}
+      .taxi-calculator-container .luggage-options,
+      .taxi-calculator-container .supplement-options{grid-template-columns:1fr}
+      .taxi-calculator-container .card {
+        width: calc(100vw - 20px);
+        margin: 0 auto;
+        border-radius: 16px;
+      }
+      
+      /* Mobile: features on separate lines */
+      .taxi-calculator-container .features {
+        flex-direction: column;
+        gap: 4px;
+      }
+    }
+    /* Mobile: reduce date/time inner margins */
+    @media (max-width:600px){
+      .taxi-calculator-container .field i.icon + input[type="date"],
+      .taxi-calculator-container .field i.icon + input[type="time"]{
+        font-size:9px !important;
+        padding-left:28px !important;
+        padding-right:28px !important;
+        white-space:nowrap; overflow:visible; text-overflow:clip; letter-spacing:0; line-height:1.2; margin:0 !important;
+      }
+      .taxi-calculator-container .field input[type="date"]::-webkit-datetime-edit,
+      .taxi-calculator-container .field input[type="time"]::-webkit-datetime-edit,
+      .taxi-calculator-container .field input[type="date"]::-webkit-datetime-edit-fields-wrapper,
+      .taxi-calculator-container .field input[type="time"]::-webkit-datetime-edit-fields-wrapper,
+      .taxi-calculator-container .field input[type="date"]::-webkit-datetime-edit-text,
+      .taxi-calculator-container .field input[type="time"]::-webkit-datetime-edit-text,
+      .taxi-calculator-container .field input[type="date"]::-webkit-datetime-edit-year-field,
+      .taxi-calculator-container .field input[type="date"]::-webkit-datetime-edit-month-field,
+      .taxi-calculator-container .field input[type="date"]::-webkit-datetime-edit-day-field,
+      .taxi-calculator-container .field input[type="time"]::-webkit-datetime-edit-hour-field,
+      .taxi-calculator-container .field input[type="time"]::-webkit-datetime-edit-minute-field,
+      .taxi-calculator-container .field input[type="time"]::-webkit-datetime-edit-second-field,
+      .taxi-calculator-container .field input[type="time"]::-webkit-datetime-edit-ampm-field{
+        margin:0 !important; padding:0 !important;
+      }
+      .taxi-calculator-container .field input[type="date"]::-webkit-calendar-picker-indicator,
+      .taxi-calculator-container .field input[type="time"]::-webkit-calendar-picker-indicator{
+        margin:0 !important; padding:0 !important; width:14px; height:14px; opacity:.9;
+      }
+      .taxi-calculator-container input[type="date"], 
+      .taxi-calculator-container input[type="time"]{-moz-appearance:textfield;}
+    }
+
+    /* Step 3 mobile tidy */
+    @media (max-width:600px){
+      .taxi-calculator-container .pane[aria-label="Réservation"] .row,
+      .taxi-calculator-container .pane[aria-label="Réservation"] .row.two{grid-template-columns:1fr!important}
+      .taxi-calculator-container .pane[aria-label="Réservation"] .row{gap:12px;margin:8px 0}
+      .taxi-calculator-container .pane[aria-label="Réservation"] .field textarea{min-height:110px}
+      .taxi-calculator-container .pane[aria-label="Réservation"] .summary{margin-bottom:10px}
+      .taxi-calculator-container .pane[aria-label="Réservation"] .option-row{gap:12px}
+      .taxi-calculator-container .pane[aria-label="Réservation"] .btn{padding:16px 18px}
+    }
+
+    /* Show labels in step 3 */
+    .taxi-calculator-container .pane[aria-label="Réservation"] .flabel{display:block}
+
+    /* Generic hidden util */
+    .taxi-calculator-container .hidden{display:none!important}
+  </style>
+</head>
+
+<body>
+  <!-- CONTENEUR PRINCIPAL AVEC CLASSE D'ISOLATION -->
+  <div class="taxi-calculator-container">
+    <!-- Top - 100% TRANSPARENT, NO SEPARATOR -->
+    <div class="brandbar">
+      <div class="inner">
+        <div class="spacer"></div>
+
+        <!-- Language -->
+        <div class="dropdown" id="lang-dd">
+          <button class="chip-btn" type="button" aria-haspopup="listbox">
+            <img id="flag-img" alt="flag" src="https://flagcdn.com/w20/fr.png">
+            <span id="lang-code">FR</span>
+            <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+          </button>
+          <div class="drop-menu" role="listbox">
+            <div class="drop-item" data-lang="fr"><img src="https://flagcdn.com/w20/fr.png" alt=""> Français</div>
+            <div class="drop-item" data-lang="en"><img src="https://flagcdn.com/w20/gb.png" alt=""> English</div>
+            <div class="drop-item" data-lang="de"><img src="https://flagcdn.com/w20/de.png" alt=""> Deutsch</div>
+            <div class="drop-item" data-lang="es"><img src="https://flagcdn.com/w20/es.png" alt=""> Español</div>
+          </div>
+        </div>
+
+        <!-- Currency -->
+        <div class="dropdown" id="cur-dd" style="margin-left:8px">
+          <button class="chip-btn" type="button" aria-haspopup="listbox">
+            <span id="cur-code">CHF</span>
+            <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+          </button>
+          <div class="drop-menu" role="listbox">
+            <div class="drop-item" data-cur="CHF">CHF</div>
+            <div class="drop-item" data-cur="EUR">EUR</div>
+            <div class="drop-item" data-cur="USD">USD</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main — full screen, no container -->
+    <div class="hero3d" aria-hidden="true">
+      <div class="cube"><img src="https://pluspng.com/img-png/tesla-png-model-s-778.png" alt=""></div>
+    </div>
+
+    <div class="card">
+      <!-- Progress -->
+      <div class="progress" aria-label="Progression">
+        <div class="progress__rail"><div class="progress__bar" id="progress-bar" style="--w:10%"></div></div>
+        <div class="progress__steps">
+          <div class="pstep active" data-step="1"><div class="dot">1</div><span data-i18n="step1">Itinéraire</span></div>
+          <div class="pstep" data-step="2"><div class="dot">2</div><span data-i18n="step2">Prix</span></div>
+          <div class="pstep" data-step="3"><div class="dot">3</div><span data-i18n="step3">Réservation</span></div>
+        </div>
+      </div>
+
+      <div class="wizard step-1" id="wizard">
+        <div class="wizard-rail">
+
+          <!-- ================= STEP 1 — Itinéraire ================= -->
+          <section class="pane" aria-label="Itinéraire">
+            <!-- Ski Package Indicator -->
+            <div id="ski-package-indicator" class="ski-package-indicator hidden">
+              <i class="fa-solid fa-skiing"></i>
+              <span id="ski-package-text">Forfait Ski Applicable</span>
+            </div>
+
+            <div class="row">
+              <div class="col">
+                <label class="flabel" data-i18n="start">Point de départ</label>
+                <div class="field">
+                  <i class="fa-solid fa-location-dot icon"></i>
+                  <input id="start" placeholder="Adresse, aéroport, hôtel…" data-i18n-pl="ph_start" autocomplete="off" spellcheck="false">
+                </div>
+                <div style="color:#d33;font-size:12px;margin-top:4px" id="start-error"></div>
+              </div>
+              <div class="col">
+                <label class="flabel" data-i18n="end">Point d'arrivée</label>
+                <div class="field">
+                  <i class="fa-solid fa-location-dot icon"></i>
+                  <input id="end" placeholder="Adresse, aéroport, hôtel…" data-i18n-pl="ph_end" autocomplete="off" spellcheck="false">
+                </div>
+                <div style="color:#d33;font-size:12px;margin-top:4px" id="end-error"></div>
+              </div>
+            </div>
+
+            <!-- passengers + one luggage total -->
+            <div class="row two" style="margin-top:10px">
+              <div class="col">
+                <label for="passengers" class="flabel" data-i18n="passengers">Passagers</label>
+                <div class="field">
+                  <i class="fa-solid fa-user icon"></i>
+                  <input type="number" id="passengers" min="1" max="8" value="1" inputmode="numeric" placeholder="1">
+                  <div class="right-count" id="pax-counter">1</div>
+                </div>
+              </div>
+
+              <div class="col">
+                <label for="luggage" class="flabel" data-i18n="luggage">Valises</label>
+                <div class="field">
+                  <i class="fa-solid fa-suitcase icon"></i>
+                  <input type="number" id="luggage" min="0" max="12" value="0" inputmode="numeric" placeholder="0">
+                  <div class="right-count" id="bags-counter">0</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- date / time -->
+            <div class="row two" style="margin-top:10px">
+              <div class="col">
+                <label class="flabel" data-i18n="date">Date de départ</label>
+                <div class="field">
+                  <i class="fa-solid fa-calendar icon"></i>
+                  <input type="date" id="date">
+                </div>
+              </div>
+              <div class="col">
+                <label class="flabel" data-i18n="time">Heure de départ</label>
+                <div class="field">
+                  <i class="fa-solid fa-clock icon"></i>
+                  <input type="time" id="time">
+                </div>
+              </div>
+            </div>
+
+            <!-- round trip - MODIFICATION: texte sur une seule ligne -->
+            <div class="row" style="align-items:center;margin-top:6px">
+              <div class="col">
+                <label class="chip-toggle" style="display:inline-flex; white-space: nowrap;">
+                  <input type="checkbox" id="round-trip"> <span data-i18n="return" style="white-space: nowrap;">Retour (10% de réduction)</span>
+                </label>
+              </div>
+              <div class="col" style="text-align:right;color:#41507a">
+                <span id="distance">—</span> <span id="duration">• —</span>
+              </div>
+            </div>
+
+            <!-- return date/time fields -->
+            <div id="return-fields" class="row two hidden" style="margin-top:6px">
+              <div class="col">
+                <label class="flabel" data-i18n="ret_date">Date de retour</label>
+                <div class="field">
+                  <i class="fa-solid fa-calendar icon"></i>
+                  <input type="date" id="return-date">
+                </div>
+              </div>
+              <div class="col">
+                <label class="flabel" data-i18n="ret_time">Heure de retour</label>
+                <div class="field">
+                  <i class="fa-solid fa-clock icon"></i>
+                  <input type="time" id="return-time">
+                </div>
+              </div>
+            </div>
+
+            <div class="row" style="margin-top:14px;justify-content:flex-end">
+              <button class="btn" id="calc-btn" type="button"><span class="button__text" data-i18n="calc">Calculer →</span></button>
+            </div>
+          </section>
+
+          <!-- ================= STEP 2 — Prix ================= -->
+          <section class="pane" aria-label="Prix">
+            <div class="note" data-i18n="choose_vehicle">Choisissez un véhicule pour continuer.</div>
+            <div class="veh-list" id="veh-list"></div>
+            <div class="row" style="margin-top:16px;justify-content:flex-start">
+              <button class="btn secondary" id="back-1" type="button"><i class="fa-solid fa-arrow-left"></i>&nbsp;<span class="button__text" data-i18n="prev">Précédent</span></button>
+            </div>
+          </section>
+
+          <!-- ================= STEP 3 — Réservation ================= -->
+          <section class="pane" aria-label="Réservation">
+            <div class="summary">
+              <h3 data-i18n="recap">Récapitulatif</h3>
+              <div class="row two">
+                <div class="col"><b id="sum-veh"></b></div>
+                <div class="col"><b id="sum-price"></b></div>
+              </div>
+              <div class="row two">
+                <div class="col"><span id="sum-start"></span></div>
+                <div class="col"><span id="sum-end"></span></div>
+              </div>
+              <div class="row two">
+                <div class="col"><span id="sum-date"></span></div>
+                <div class="col"><span id="sum-time"></span></div>
+              </div>
+
+              <div class="row two hidden" id="sum-ret-row">
+                <div class="col"><span id="sum-ret-date"></span></div>
+                <div class="col"><span id="sum-ret-time"></span></div>
+              </div>
+            </div>
+
+            <div class="row two">
+              <div class="col">
+                <label for="name" class="flabel" data-i18n="full_name">Nom complet</label>
+                <div class="field"><input id="name" data-i18n-pl="ph_name" placeholder="Votre nom et prénom" autocomplete="name"></div>
+              </div>
+              <div class="col">
+                <label for="email" class="flabel" data-i18n="email">Adresse email</label>
+                <div class="field"><input type="email" id="email" placeholder="vous@exemple.com" data-i18n-pl="ph_email" autocomplete="email" inputmode="email"></div>
+              </div>
+            </div>
+
+            <div class="row two">
+              <div class="col">
+                <label class="flabel" data-i18n="phone">Téléphone</label>
+                <div class="phone-join">
+                  <div class="prefix-chip" title="Indicatif">
+                    <input id="phone-code" value="+41" maxlength="4" inputmode="tel" pattern="^\\+?[0-9]{1,4}$" aria-label="Indicatif">
+                  </div>
+                  <div class="field" style="flex:1">
+                    <input id="phone" placeholder="078 123 45 67" data-i18n-pl="ph_phone" autocomplete="tel-national" inputmode="tel" pattern="^[0-9 ()+-]{6,20}$" aria-label="Numéro de téléphone">
+                  </div>
+                </div>
+              </div>
+              <div class="col"><!-- spacer --></div>
+            </div>
+
+            <!-- OUTBOUND LUGGAGE -->
+            <div class="different-return-supplements" style="margin-top:8px">
+              <h4 style="margin:0 0 10px" data-i18n="bags">Bagages (aller)</h4>
+              <div class="luggage-options">
+                <div class="luggage-option">
+                  <label for="ob-small-bags" data-i18n="small_bags" style="color:#000000;">Petits bagages</label>
+                  <input type="number" id="ob-small-bags" min="0" value="0">
+                </div>
+                <div class="luggage-option">
+                  <label for="ob-medium-bags" data-i18n="medium_bags" style="color:#000000;">Bagages moyens</label>
+                  <input type="number" id="ob-medium-bags" min="0" value="0">
+                </div>
+              </div>
+            </div>
+
+            <!-- OPTIONS -->
+            <div class="row">
+              <div class="col">
+                <label data-i18n="child_seat">Siège bébé/enfant/rehausseur</label>
+                <div class="option-row">
+                  <label class="chip-toggle"><input type="radio" name="child_seat" id="child-seat-yes" value="yes"> <span data-i18n="yes">Oui</span></label>
+                  <label class="chip-toggle"><input type="radio" name="child_seat" id="child-seat-no"  value="no" checked> <span data-i18n="no">Non</span></label>
+                </div>
+              </div>
+              <div class="col">
+                <label data-i18n="sports">Skis/Équipement de sport/Autre</label>
+                <div class="option-row">
+                  <label class="chip-toggle"><input type="radio" name="sports_equipment" id="sports-equipment-yes" value="yes"> <span data-i18n="yes">Oui</span></label>
+                  <label class="chip-toggle"><input type="radio" name="sports_equipment" id="sports-equipment-no"  value="no" checked> <span data-i18n="no">Non</span></label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Different-return supplements -->
+            <div id="extras-conditional" class="hidden">
+              <div class="different-return-supplements" id="different-return-supplements-section">
+                <div class="different-return-supplements-label">
+                  <input type="checkbox" id="different-return-supplements" name="different_return_supplements">
+                  <label for="different-return-supplements" id="different-return-supplements-label" data-i18n="diff_ret_supp_label" style="color:#000000;">Bagages et suppléments différents pour le retour</label>
+                </div>
+
+                <div class="return-supplements-container hidden" id="return-supplements-container">
+                  <h4 id="return-supplements-title" data-i18n="diff_ret_supp_title" style="color:#000000;">Suppléments du trajet retour</h4>
+
+                  <div class="luggage-options">
+                    <div class="luggage-option">
+                      <label for="return-small-bags" id="return-small-bags-label" data-i18n="small_bags" style="color:#000000;">Petits bagages</label>
+                      <input type="number" id="return-small-bags" name="return_small_bags" min="0" value="0">
+                    </div>
+
+                    <div class="luggage-option">
+                      <label for="return-medium-bags" id="return-medium-bags-label" data-i18n="medium_bags" style="color:#000000;">Bagages moyens</label>
+                      <input type="number" id="return-medium-bags" name="return_medium_bags" min="0" value="0">
+                    </div>
+                  </div>
+
+                  <div class="supplement-options" style="margin-top:10px">
+                    <div class="supplement-option">
+                      <label id="return-child-seat-label" data-i18n="return_child_seat" style="color:#000000;">Siège enfant/rehausseur (retour)</label>
+                      <div class="radio-group">
+                        <div class="radio-option">
+                          <input type="radio" id="return-child-seat-yes" name="return_child_seat" value="yes">
+                          <label for="return-child-seat-yes" id="return-child-seat-yes-label" data-i18n="yes" style="color:#000000;">Oui</label>
+                        </div>
+                        <div class="radio-option">
+                          <input type="radio" id="return-child-seat-no" name="return_child_seat" value="no" checked>
+                          <label for="return-child-seat-no" id="return-child-seat-no-label" data-i18n="no" style="color:#000000;">Non</label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="supplement-option">
+                      <label id="return-sports-equipment-label" data-i18n="return_sports_equipment" style="color:#000000;">Skis/Équipement de sport/Autre (retour)</label>
+                      <div class="radio-group">
+                        <div class="radio-option">
+                          <input type="radio" id="return-sports-equipment-yes" name="return_sports_equipment" value="yes">
+                          <label for="return-sports-equipment-yes" id="return-sports-equipment-yes-label" data-i18n="yes" style="color:#000000;">Oui</label>
+                        </div>
+                        <div class="radio-option">
+                          <input type="radio" id="return-sports-equipment-no" name="return_sports_equipment" value="no" checked>
+                          <label for="return-sports-equipment-no" id="return-sports-equipment-no-label" data-i18n="no" style="color:#000000;">Non</label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Flight + comments -->
+            <div class="row two" style="margin-top:6px">
+              <div class="col">
+                <label class="flabel" data-i18n="flight">Numéro de vol (si départ aéroport)</label>
+                <div class="field"><input id="flight" placeholder="ex: LX1234" data-i18n-pl="ph_flight" autocomplete="off" spellcheck="false"></div>
+              </div>
+              <div class="col">
+                <label class="flabel" data-i18n="comments">Commentaires</label>
+                <div class="field"><textarea id="comments" placeholder="Message, instructions…" data-i18n-pl="ph_comments"></textarea></div>
+              </div>
+            </div>
+
+            <div id="booking-note" class="note" style="margin-top:6px"></div>
+
+            <div class="row" style="margin-top:12px;justify-content:space-between">
+              <button class="btn secondary" id="back-2" type="button"><i class="fa-solid fa-arrow-left"></i>&nbsp;<span class="button__text" data-i18n="prev">Précédent</span></button>
+              <button class="btn" id="submit-booking" type="button">
+                <span class="button__text" data-i18n="confirm">Confirmer</span>
+              </button>
+            </div>
+          </section>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast"><div class="t-ico"><i class="fa-solid fa-circle-check"></i></div><div class="t-msg">Ready</div></div>
+  </div>
+
+  <!-- Google Maps JS API -->
+  <script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBADD6LW5ae1bVy-2RxKmhsjjAKwD7hQiE&libraries=places"></script>
+
+  <script>
+  (function(){
+    const EMAIL_ENDPOINT = "https://email.elitesportholding.com/email.php";
+
+    /* SKI PACKAGES CONFIGURATION - ALL PACKAGES INTEGRATED */
+    const SKI_PACKAGES = {
+      /* French Alps - Haute-Savoie */
+      "geneve-saint-gervais": {
+        routes: [
+          { from: "geneve", to: "saint gervais" },
+          { from: "saint gervais", to: "geneve" }
+        ],
+        prices: { standard: 280, business: 350, van7: 440, van8: 460 }
+      },
+      "geneve-contamines": {
+        routes: [
+          { from: "geneve", to: "contamines" },
+          { from: "contamines", to: "geneve" }
+        ],
+        prices: { standard: 300, business: 370, van7: 480, van8: 490 }
+      },
+      "geneve-combloux": {
+        routes: [
+          { from: "geneve", to: "combloux" },
+          { from: "combloux", to: "geneve" }
+        ],
+        prices: { standard: 280, business: 320, van7: 340, van8: 360 }
+      },
+      "geneve-megeve": {
+        routes: [
+          { from: "geneve", to: "megeve" },
+          { from: "megeve", to: "geneve" }
+        ],
+        prices: { standard: 280, business: 320, van7: 440, van8: 490 }
+      },
+      "geneve-laclusaz": {
+        routes: [
+          { from: "geneve", to: "la clusaz" },
+          { from: "la clusaz", to: "geneve" }
+        ],
+        prices: { standard: 230, business: 280, van7: 310, van8: 340 }
+      },
+      "geneve-grand-bornand": {
+        routes: [
+          { from: "geneve", to: "grand bornand" },
+          { from: "grand bornand", to: "geneve" }
+        ],
+        prices: { standard: 220, business: 280, van7: 310, van8: 330 }
+      },
+      "geneve-carroz": {
+        routes: [
+          { from: "geneve", to: "carroz" },
+          { from: "carroz", to: "geneve" }
+        ],
+        prices: { standard: 320, business: 380, van7: 400, van8: 440 }
+      },
+      "geneve-flaine": {
+        routes: [
+          { from: "geneve", to: "flaine" },
+          { from: "flaine", to: "geneve" }
+        ],
+        prices: { standard: 280, business: 320, van7: 360, van8: 390 }
+      },
+      "geneve-samoens": {
+        routes: [
+          { from: "geneve", to: "samoens" },
+          { from: "samoens", to: "geneve" }
+        ],
+        prices: { standard: 260, business: 290, van7: 340, van8: 360 }
+      },
+      "geneve-morillon": {
+        routes: [
+          { from: "geneve", to: "morillon" },
+          { from: "morillon", to: "geneve" }
+        ],
+        prices: { standard: 280, business: 320, van7: 400, van8: 400 }
+      },
+      "geneve-sixt": {
+        routes: [
+          { from: "geneve", to: "sixt" },
+          { from: "sixt", to: "geneve" }
+        ],
+        prices: { standard: 300, business: 300, van7: 350, van8: 370 }
+      },
+      "geneve-morzine": {
+        routes: [
+          { from: "geneve", to: "morzine" },
+          { from: "morzine", to: "geneve" }
+        ],
+        prices: { standard: 260, business: 290, van7: 310, van8: 330 }
+      },
+      "geneve-gets": {
+        routes: [
+          { from: "geneve", to: "gets" },
+          { from: "gets", to: "geneve" }
+        ],
+        prices: { standard: 260, business: 290, van7: 310, van8: 330 }
+      },
+      "geneve-avoriaz": {
+        routes: [
+          { from: "geneve", to: "avoriaz" },
+          { from: "avoriaz", to: "geneve" }
+        ],
+        prices: { standard: 260, business: 290, van7: 310, van8: 330 }
+      },
+      "geneve-praz-de-lys": {
+        routes: [
+          { from: "geneve", to: "praz de lys" },
+          { from: "praz de lys", to: "geneve" }
+        ],
+        prices: { standard: 260, business: 290, van7: 310, van8: 330 }
+      },
+
+      /* French Alps - Savoie */
+      "geneve-plagne": {
+        routes: [
+          { from: "geneve", to: "plagne" },
+          { from: "plagne", to: "geneve" }
+        ],
+        prices: { standard: 480, business: 540, van7: 680, van8: 710 }
+      },
+      "geneve-arcs": {
+        routes: [
+          { from: "geneve", to: "arcs" },
+          { from: "arcs", to: "geneve" }
+        ],
+        prices: { standard: 550, business: 590, van7: 660, van8: 690 }
+      },
+      "geneve-val-disere": {
+        routes: [
+          { from: "geneve", to: "val disere" },
+          { from: "val disere", to: "geneve" }
+        ],
+        prices: { standard: 530, business: 580, van7: 590, van8: 650 }
+      },
+      "geneve-courchevel": {
+        routes: [
+          { from: "geneve", to: "courchevel" },
+          { from: "courchevel", to: "geneve" }
+        ],
+        prices: { standard: 380, business: 420, van7: 480, van8: 520 }
+      },
+      "geneve-meribel": {
+        routes: [
+          { from: "geneve", to: "meribel" },
+          { from: "meribel", to: "geneve" }
+        ],
+        prices: { standard: 380, business: 420, van7: 480, van8: 520 }
+      },
+      "geneve-val-thorens": {
+        routes: [
+          { from: "geneve", to: "val thorens" },
+          { from: "val thorens", to: "geneve" }
+        ],
+        prices: { standard: 500, business: 540, van7: 590, van8: 610 }
+      },
+      "geneve-rosiere": {
+        routes: [
+          { from: "geneve", to: "rosiere" },
+          { from: "rosiere", to: "geneve" }
+        ],
+        prices: { standard: 500, business: 540, van7: 650, van8: 690 }
+      },
+
+      /* Swiss Alps - Valais */
+      "geneve-zermatt": {
+        routes: [
+          { from: "geneve", to: "zermatt" },
+          { from: "zermatt", to: "geneve" }
+        ],
+        prices: { standard: 580, business: 640, van7: 780, van8: 810 }
+      },
+      "geneve-verbier": {
+        routes: [
+          { from: "geneve", to: "verbier" },
+          { from: "verbier", to: "geneve" }
+        ],
+        prices: { standard: 460, business: 500, van7: 550, van8: 590 }
+      },
+      "geneve-crans-montana": {
+        routes: [
+          { from: "geneve", to: "crans" },
+          { from: "crans", to: "geneve" },
+          { from: "geneve", to: "montana" },
+          { from: "montana", to: "geneve" }
+        ],
+        prices: { standard: 490, business: 540, van7: 650, van8: 690 }
+      },
+      "geneve-saas-fee": {
+        routes: [
+          { from: "geneve", to: "saas fee" },
+          { from: "saas fee", to: "geneve" }
+        ],
+        prices: { standard: 550, business: 590, van7: 650, van8: 690 }
+      },
+      "geneve-grimentz": {
+        routes: [
+          { from: "geneve", to: "grimentz" },
+          { from: "grimentz", to: "geneve" }
+        ],
+        prices: { standard: 520, business: 560, van7: 600, van8: 640 }
+      },
+
+      /* Swiss Alps - Vaud */
+      "geneve-villars": {
+        routes: [
+          { from: "geneve", to: "villars" },
+          { from: "villars", to: "geneve" }
+        ],
+        prices: { standard: 360, business: 400, van7: 490, van8: 530 }
+      },
+      "geneve-leysin": {
+        routes: [
+          { from: "geneve", to: "leysin" },
+          { from: "leysin", to: "geneve" }
+        ],
+        prices: { standard: 400, business: 430, van7: 470, van8: 510 }
+      },
+      "geneve-diablerets": {
+        routes: [
+          { from: "geneve", to: "diablerets" },
+          { from: "diablerets", to: "geneve" }
+        ],
+        prices: { standard: 390, business: 430, van7: 470, van8: 510 }
+      },
+
+      /* Swiss Alps - Bernese Oberland */
+      "geneve-grindelwald": {
+        routes: [
+          { from: "geneve", to: "grindelwald" },
+          { from: "grindelwald", to: "geneve" }
+        ],
+        prices: { standard: 590, business: 630, van7: 700, van8: 740 }
+      },
+      "geneve-wengen": {
+        routes: [
+          { from: "geneve", to: "wengen" },
+          { from: "wengen", to: "geneve" }
+        ],
+        prices: { standard: 590, business: 630, van7: 690, van8: 710 }
+      },
+      "geneve-lauterbrunnen": {
+        routes: [
+          { from: "geneve", to: "lauterbrunnen" },
+          { from: "lauterbrunnen", to: "geneve" }
+        ],
+        prices: { standard: 600, business: 640, van7: 720, van8: 760 }
+      },
+      "geneve-murren": {
+        routes: [
+          { from: "geneve", to: "murren" },
+          { from: "murren", to: "geneve" }
+        ],
+        prices: { standard: 550, business: 590, van7: 700, van8: 740 }
+      },
+      "geneve-adelboden": {
+        routes: [
+          { from: "geneve", to: "adelboden" },
+          { from: "adelboden", to: "geneve" }
+        ],
+        prices: { standard: 610, business: 640, van7: 690, van8: 710 }
+      },
+      "geneve-lenk": {
+        routes: [
+          { from: "geneve", to: "lenk" },
+          { from: "lenk", to: "geneve" }
+        ],
+        prices: { standard: 480, business: 520, van7: 670, van8: 710 }
+      },
+      "geneve-gstaad": {
+        routes: [
+          { from: "geneve", to: "gstaad" },
+          { from: "gstaad", to: "geneve" }
+        ],
+        prices: { standard: 400, business: 440, van7: 600, van8: 640 }
+      },
+
+      /* Swiss Alps - Eastern */
+      "geneve-st-moritz": {
+        routes: [
+          { from: "geneve", to: "st moritz" },
+          { from: "st moritz", to: "geneve" }
+        ],
+        prices: { standard: 990, business: 1030, van7: 1100, van8: 1150 }
+      },
+      "geneve-davos": {
+        routes: [
+          { from: "geneve", to: "davos" },
+          { from: "davos", to: "geneve" }
+        ],
+        prices: { standard: 850, business: 890, van7: 1190, van8: 1230 }
+      },
+      "geneve-klosters": {
+        routes: [
+          { from: "geneve", to: "klosters" },
+          { from: "klosters", to: "geneve" }
+        ],
+        prices: { standard: 890, business: 950, van7: 1020, van8: 1080 }
+      },
+      "geneve-arosa": {
+        routes: [
+          { from: "geneve", to: "arosa" },
+          { from: "arosa", to: "geneve" }
+        ],
+        prices: { standard: 910, business: 960, van7: 1040, van8: 1080 }
+      },
+      "geneve-flims": {
+        routes: [
+          { from: "geneve", to: "flims" },
+          { from: "flims", to: "geneve" }
+        ],
+        prices: { standard: 890, business: 930, van7: 1080, van8: 1120 }
+      }
+    };
+
+    /* i18n */
+    const I18N = {
+      fr:{
+        step1:"Itinéraire", step2:"Prix", step3:"Réservation", title:"Calculateur de Prix Taxi",
+        start:"Point de départ", end:"Point d'arrivée", passengers:"Passagers",
+        luggage:"Valises", bags:"Bagages",
+        small_bags:"Petits bagages", medium_bags:"Bagages moyens",
+        date:"Date de départ", time:"Heure de départ", return:"Retour (10% de réduction)",
+        ret_date:"Date de retour", ret_time:"Heure de retour", results:"Résultats",
+        no_trip:"Aucun trajet calculé.", calc:"Calculer →", next:"Suivant →", prev:"Précédent",
+        choose_vehicle:"Choisissez une option tarifaire pour continuer.", recap:"Récapitulatif",
+        full_name:"Nom complet", email:"Adresse email", phone:"Téléphone",
+        flight:"Numéro de vol (si départ aéroport)", comments:"Commentaires",
+        yes:"Oui", no:"Non",
+        sports:"Skis/Équipement de sport/Autre",
+        child_seat:"Siège bébé/enfant/rehausseur",
+        diff_ret_supp_label:"Bagages et suppléments différents pour le retour",
+        diff_ret_supp_title:"Suppléments du trajet retour",
+        return_child_seat:"Siège enfant/rehausseur (retour)",
+        return_sports_equipment:"Skis/Équipement de sport/Autre (retour)",
+        confirm:"Confirmer",
+        f_cancel:"Politique d'annulation", f_terms:"Conditions générales", f_privacy:"Politique de confidentialité",
+        copyright:"© TAXIS 24 — Prix indicatifs, sous réserve de confirmation.",
+        ph_start:"Adresse, aéroport, hôtel...", ph_end:"Adresse, aéroport, hôtel…",
+        ph_name:"Votre nom et prénom", ph_email:"vous@exemple.com", ph_phone:"078 123 45 67",
+        ph_flight:"ex: LX1234", ph_comments:"Message, instructions…",
+        v_standard:"Standard", v_business:"Business", v_van7:"VAN 7 places", v_van8:"VAN 8 places",
+        v_details_standard:"4 places • 4 valises", v_details_business:"3 places • 3 valises • Confort supérieur",
+        v_details_van7:"7 places • 7 valises", v_details_van8:"8 places • 8 valises",
+        feat_cancel:"Annulation gratuite 24h", feat_wait:"Temps d'attente offert",
+        feat_door:"Porte à porte", feat_paylater:"Réservez, payez plus tard",
+        sum_vehicle:"Véhicule", sum_price:"Prix", sum_from:"De", sum_to:"À", sum_date:"Date", sum_time:"Heure",
+        sum_ret_date:"Date de retour", sum_ret_time:"Heure de retour",
+        t_need_start:"Veuillez entrer un point de départ", t_need_end:"Veuillez entrer un point d'arrivée",
+        t_route_ok:"Trajet trouvé. Étape véhicule ouverte.", t_route_fail:"Échec du calcul d'itinéraire.",
+        t_name_req:"Nom requis", t_email_bad:"Email invalide", t_pick_vehicle:"Choisissez un véhicule d'abord",
+        t_send_ok:"Votre réservation a été envoyée !", t_send_fail:"Échec de l'envoi", t_net_fail:"Erreur réseau",
+        t_301:"L'hébergeur a redirigé /email.php. Utilisez l'endpoint externe.",
+        tag_seats:"Places", tag_bags:"Valises", tag_premium:"Premium",
+        loading:"Chargement<span class='loading-dots'></span>",
+        ski_package:"Forfait Ski Applicable",
+        ski_package_discount:"Forfait ski - Supplément aéroport retiré"
+      },
+      en:{
+        step1:"Route", step2:"Price", step3:"Booking", title:"Taxi Price Calculator",
+        start:"Pickup", end:"Drop-off", passengers:"Passengers",
+        luggage:"Bags", bags:"Luggage",
+        small_bags:"Small bags", medium_bags:"Medium bags",
+        date:"Pickup date", time:"Pickup time", return:"Return (10% discount)",
+        ret_date:"Return date", ret_time:"Return time", results:"Results",
+        no_trip:"No route calculated yet.", calc:"Calculate →", next:"Next →", prev:"Back",
+        choose_vehicle:"Choose a pricing option to continue.", recap:"Summary",
+        full_name:"Full name", email:"Email address", phone:"Phone",
+        flight:"Flight number (if airport pickup)", comments:"Comments",
+        yes:"Yes", no:"No",
+        sports:"Skis / sports equipment / Other",
+        child_seat:"Baby/child/booster seat",
+        diff_ret_supp_label:"Different luggage and supplements for return",
+        diff_ret_supp_title:"Return trip supplements",
+        return_child_seat:"Child seat/booster (return)",
+        return_sports_equipment:"Skis/Sports equipment/Other (return)",
+        confirm:"Confirm",
+        f_cancel:"Cancellation policy", f_terms:"Terms and Conditions", f_privacy:"Privacy policy",
+        copyright:"© TAXIS 24 — Indicative prices, subject to confirmation.",
+        ph_start:"Address, airport, hotel…", ph_end:"Address, airport, hotel…",
+        ph_name:"Your first & last name", ph_email:"you@example.com", ph_phone:"078 123 45 67",
+        ph_flight:"e.g. LX1234", ph_comments:"Message, instructions…",
+        v_standard:"Standard", v_business:"Business", v_van7:"VAN 7 seats", v_van8:"VAN 8 seats",
+        v_details_van7:"7 seats • 7 suitcases", v_details_van8:"8 seats • 8 suitcases",
+        v_details_standard:"4 seats • 4 suitcases", v_details_business:"3 seats • 3 suitcases • Premium",
+        feat_cancel:"Free cancellation 24h", feat_wait:"Free waiting time", feat_door:"Door-to-door", feat_paylater:"Book now, pay later",
+        sum_vehicle:"Vehicle", sum_price:"Price", sum_from:"From", sum_to:"To", sum_date:"Date", sum_time:"Time",
+        sum_ret_date:"Return date", sum_ret_time:"Return time",
+        t_need_start:"Please enter a pickup point", t_need_end:"Please enter a drop-off point",
+        t_route_ok:"Route found. Opening Vehicle step.", t_route_fail:"Route calculation failed.",
+        t_name_req:"Name required", t_email_bad:"Invalid email", t_pick_vehicle:"Pick a vehicle first",
+        t_send_ok:"Booking sent!", t_send_fail:"Sending failed", t_net_fail:"Network error",
+        t_301:"Your host redirected /email.php. Use the external endpoint.",
+        tag_seats:"Seats", tag_bags:"Bags", tag_premium:"Premium",
+        loading:"Loading<span class='loading-dots'></span>",
+        ski_package:"Ski Package Applicable",
+        ski_package_discount:"Ski package - Airport supplement removed"
+      },
+      de:{
+        step1:"Route", step2:"Preis", step3:"Buchung", title:"Taxi-Preisrechner",
+        start:"Abholung", end:"Ziel", passengers:"Passagiere",
+        luggage:"Koffer", bags:"Gepäck",
+        small_bags:"Kleine Taschen", medium_bags:"Mittlere Taschen",
+        date:"Abholdatum", time:"Abholzeit", return:"Rückfahrt (10% Rabatt)",
+        ret_date:"Rückfahrtdatum", ret_time:"Rückfahrtszeit", results:"Ergebnisse",
+        no_trip:"Noch keine Route berechnet.", calc:"Berechnen →", next:"Weiter →", prev:"Zurück",
+        choose_vehicle:"Wählen Sie eine Preisoption, um fortzufahren.", recap:"Zusammenfassung",
+        full_name:"Vollständiger Name", email:"E-Mail-Adresse", phone:"Telefon",
+        flight:"Flugnummer (bei Abholung am Flughafen)", comments:"Kommentare",
+        yes:"Ja", no:"Nein",
+        sports:"Ski / Sportausrüstung / Sonstiges",
+        child_seat:"Baby-/Kinder-/Sitzerhöhung",
+        diff_ret_supp_label:"Andere Gepäck-/Zusatzangaben für die Rückfahrt",
+        diff_ret_supp_title:"Zusätze für die Rückfahrt",
+        return_child_seat:"Kindersitz/Sitzerhöhung (Rückfahrt)",
+        return_sports_equipment:"Ski/Sportausrüstung/Sonstiges (Rückfahrt)",
+        confirm:"Bestätigen",
+        f_cancel:"Stornierungsrichtlinie", f_terms:"AGB", f_privacy:"Datenschutz",
+        copyright:"© TAXIS 24 — Richtpreise, vorbehaltlich Bestätigung.",
+        ph_start:"Adresse, Flughafen, Hotel…", ph_end:"Adresse, Flughafen, Hotel…",
+        ph_name:"Vor- und Nachname", ph_email:"sie@example.com", ph_phone:"078 123 45 67",
+        ph_flight:"z. B. LX1234", ph_comments:"Nachricht, Hinweise…",
+        v_standard:"Standard", v_business:"Business", v_van7:"VAN 7 Sitze", v_van8:"VAN 8 Sitze",
+        v_details_standard:"4 Sitze • 4 Koffer", v_details_business:"3 Sitze • 3 Koffer • Premium",
+        v_details_van7:"7 Sitze • 7 Koffer", v_details_van8:"8 Sitze • 8 Koffer",
+        feat_cancel:"Kostenlose Stornierung 24h", feat_wait:"Kostenlose Wartezeit", feat_door:"Tür-zu-Tür", feat_paylater:"Jetzt buchen, später zahlen",
+        sum_vehicle:"Fahrzeug", sum_price:"Preis", sum_from:"Von", sum_to:"Nach", sum_date:"Datum", sum_time:"Zeit",
+        sum_ret_date:"Rückfahrt-Datum", sum_ret_time:"Rückfahrt-Zeit",
+        t_need_start:"Bitte Abholort eingeben", t_need_end:"Bitte Ziel eingeben",
+        t_route_ok:"Route gefunden. Fahrzeugschritt geöffnet.", t_route_fail:"Routenberechnung fehlgeschlagen.",
+        t_name_req:"Name erforderlich", t_email_bad:"Ungültige E-Mail", t_pick_vehicle:"Zuerst ein Fahrzeug wählen",
+        t_send_ok:"Buchung gesendet!", t_send_fail:"Senden fehlgeschlagen", t_net_fail:"Netzwerkfehler",
+        t_301:"Ihr Hoster hat /email.php umgeleitet. Externes Endpoint verwenden.",
+        tag_seats:"Sitze", tag_bags:"Koffer", tag_premium:"Premium",
+        loading:"Laden<span class='loading-dots'></span>",
+        ski_package:"Ski-Paket Anwendbar",
+        ski_package_discount:"Ski-Paket - Flughafenzuschlag entfernt"
+      },
+      es:{
+        step1:"Ruta", step2:"Precio", step3:"Reserva", title:"Calculadora de Precio de Taxi",
+        start:"Salida", end:"Destino", passengers:"Pasajeros",
+        luggage:"Maletas", bags:"Equipaje",
+        small_bags:"Bolsas pequeñas", medium_bags:"Bolsas medianas",
+        date:"Fecha de salida", time:"Hora de salida", return:"Regreso (10% de descuento)",
+        ret_date:"Fecha de regreso", ret_time:"Hora de regreso", results:"Resultados",
+        no_trip:"Sin ruta calculada.", calc:"Calcular →", next:"Siguiente →", prev:"Atrás",
+        choose_vehicle:"Elija une opción de precio pour continuar.", recap:"Resumen",
+        full_name:"Nombre completo", email:"Correo electrónico", phone:"Teléfono",
+        flight:"Número de vuelo (si salida aeropuerto)", comments:"Comentarios",
+        yes:"Sí", no:"No",
+        sports:"Esquís / equipo deportivo / Otro",
+        child_seat:"Silla bebé/niño/elevador",
+        diff_ret_supp_label:"Equipaje y suplementos distintos pour la vuelta",
+        diff_ret_supp_title:"Suplementos del viaje de regreso",
+        return_child_seat:"Silla infantil/elevador (vuelta)",
+        return_sports_equipment:"Esquís/Equipo deportivo/Otros (vuelta)",
+        confirm:"Confirmar",
+        f_cancel:"Política de cancelación", f_terms:"Términos y condiciones", f_privacy:"Política de privacidad",
+        copyright:"© TAXIS 24 — Precios indicativos, sujetos a confirmación.",
+        ph_start:"Dirección, aeropuerto, hotel…", ph_end:"Dirección, aeropuerto, hotel…",
+        ph_name:"Nombre y apellidos", ph_email:"usted@ejemplo.com", ph_phone:"078 123 45 67",
+        ph_flight:"p. ej. LX1234", ph_comments:"Mensaje, instrucciones…",
+        v_standard:"Estándar", v_business:"Business", v_van7:"VAN 7 plazas", v_van8:"VAN 8 plazas",
+        v_details_van7:"7 plazas • 7 maletas", v_details_van8:"8 plazas • 8 maletas",
+        v_details_standard:"4 plazas • 4 maletas", v_details_business:"3 plazas • 3 maletas • Premium",
+        feat_cancel:"Cancelación gratuita 24h", feat_wait:"Tiempo de espera gratis", feat_door:"Puerta a puerta", feat_paylater:"Reserve ahora, pague después",
+        sum_vehicle:"Vehículo", sum_price:"Precio", sum_from:"De", sum_to:"A", sum_date:"Fecha", sum_time:"Hora",
+        sum_ret_date:"Fecha de regreso", sum_ret_time:"Hora de regreso",
+        t_need_start:"Ingrese un punto de salida", t_need_end:"Ingrese un destino",
+        t_route_ok:"Ruta encontrada. Abriendo Vehículo.", t_route_fail:"Falló el cálculo de la ruta.",
+        t_name_req:"Nombre requerido", t_email_bad:"Email inválido", t_pick_vehicle:"Elija un vehículo primero",
+        t_send_ok:"¡Reserva enviada!", t_send_fail:"Fallo al enviar", t_net_fail:"Error de red",
+        t_301:"El host redirigió /email.php. Use el endpoint externo.",
+        tag_seats:"Plazas", tag_bags:"Maletas", tag_premium:"Premium",
+        loading:"Cargando<span class='loading-dots'></span>",
+        ski_package:"Paquete de Esquí Aplicable",
+        ski_package_discount:"Paquete de esquí - Suplemento aeropuerto eliminado"
+      }
+    };
+
+    /* helpers */
+    const qs=(s,r=document)=>r.querySelector(s);
+    const qsa=(s,r=document)=>Array.from(r.querySelectorAll(s));
+    const clampInt=(v,min,max,def)=>{let n=parseInt(v,10);if(isNaN(n))n=def;return Math.max(min,Math.min(max,n));};
+    const round2=v=>Math.round(v*100)/100;
+
+    /* Toast */
+    function ensureToast(){let t=document.getElementById("toast");return {t,ico:t.querySelector(".t-ico i"),msg:t.querySelector(".t-msg")};}
+    function showToast(message,type="success"){const {t,ico,msg}=ensureToast();t.className="toast"+(type==="danger"?" danger":"");msg.textContent=message;ico.className=type==="danger"?"fa-solid fa-triangle-exclamation":"fa-solid fa-circle-check";requestAnimationFrame(()=>t.classList.add("show"));setTimeout(()=>t.classList.remove("show"),3600);}
+
+    /* Dropdowns */
+    function bindDropdown(id){const dd=qs(id);qs(".chip-btn",dd).addEventListener("click",(e)=>{e.stopPropagation();dd.classList.toggle("open");});document.addEventListener("click",(ev)=>{if(!ev.target.closest(id)) dd.classList.remove("open");});}
+    bindDropdown("#lang-dd"); bindDropdown("#cur-dd");
+
+    /* Currency */
+    let currentCurrency="CHF";
+    const fxRates={CHF:1,EUR:1.07,USD:1.12};
+    function convertDisplay(chf){const r=fxRates[currentCurrency]||1;const v=chf*r/(fxRates["CHF"]||1);return currentCurrency+" "+v.toFixed(2);}
+    function updateDisplayedPrices(){
+      qsa(".veh-price[data-chf]").forEach(el=>{const chf=parseFloat(el.getAttribute("data-chf"));if(!isNaN(chf)) el.textContent=convertDisplay(chf);});
+      const sel=qs(".veh-card.selected .veh-price"); if(sel){const chf=parseFloat(sel.getAttribute("data-chf")); if(!isNaN(chf)) {const sp=qs("#sum-price"); if(sp) sp.textContent=i18n("sum_price")+": "+convertDisplay(chf);}}
+    }
+    qsa("#cur-dd .drop-item").forEach(el=>el.addEventListener("click",()=>{currentCurrency=el.dataset.cur;qs("#cur-code").textContent=currentCurrency;updateDisplayedPrices();qs("#cur-dd").classList.remove("open");}));
+
+    /* i18n */
+    let currentLanguage="fr";
+    function i18n(key){return (I18N[currentLanguage]||I18N.fr)[key]||key;}
+    
+    function updateVehicleFeatures() {
+      qsa(".veh-card .features").forEach(featuresList => {
+        const items = featuresList.querySelectorAll("li");
+        if (items.length === 4) {
+          items[0].textContent = i18n("feat_cancel");
+          items[1].textContent = i18n("feat_wait");
+          items[2].textContent = i18n("feat_door");
+          items[3].textContent = i18n("feat_paylater");
+        }
+      });
+    }
+
+    function applyI18n(){
+      qsa("[data-i18n]").forEach(el=>{el.textContent=i18n(el.getAttribute("data-i18n"));});
+      qsa("[data-i18n-pl]").forEach(el=>{const k=el.getAttribute("data-i18n-pl"); el.placeholder=i18n(k);});
+      updateSummary(); 
+      updateVehicleBadges(); 
+      updateVehicleFeatures();
+      updateDisplayedPrices();
+      
+      // Update ski package text
+      const skiText = qs("#ski-package-text");
+      if (skiText) skiText.textContent = i18n("ski_package");
+    }
+    
+    function setLang(lang){
+      currentLanguage=lang; const lc=qs("#lang-code"); if(lc) lc.textContent=lang.toUpperCase();
+      const flag=qs("#flag-img");
+      if(flag){ flag.src={fr:"https://flagcdn.com/w20/fr.png",en:"https://flagcdn.com/w20/gb.png",de:"https://flagcdn.com/w20/de.png",es:"https://flagcdn.com/w20/es.png"}[lang] || "https://flagcdn.com/w20/fr.png"; }
+      applyI18n();
+    }
+    qsa("#lang-dd .drop-item").forEach(el=>el.addEventListener("click",()=>{setLang(el.dataset.lang); qs("#lang-dd").classList.remove("open");}));
+
+    /* Counters (Step 1) */
+    function reflectRightCounters(){
+      const pc=qs("#pax-counter"); if(pc) pc.textContent = clampInt(qs("#passengers").value,1,8,1);
+      const bc=qs("#bags-counter"); if(bc) bc.textContent = clampInt(qs("#luggage").value,0,12,0);
+    }
+    ["#passengers","#luggage"].forEach(sel=>{
+      const el=qs(sel);
+      el.addEventListener("input",reflectRightCounters);
+      el.addEventListener("change",reflectRightCounters);
+    });
+    reflectRightCounters();
+
+    /* React to outbound split edits (Step 3) */
+    ["#ob-small-bags","#ob-medium-bags"].forEach(sel=>{
+      const el=qs(sel);
+      el.addEventListener("input",()=>updateSummary());
+      el.addEventListener("change",()=>updateSummary());
+    });
+
+    /* Round trip toggles return fields + different-return-supplements block */
+    (function(){
+      const rt = qs("#round-trip");
+      if(!rt) return;
+      rt.addEventListener("change",()=>{
+        const isOn = rt.checked;
+        qs("#return-fields")?.classList.toggle("hidden", !isOn);
+        qs("#extras-conditional")?.classList.toggle("hidden", !isOn);
+        if(!isOn){
+          const chk = qs("#different-return-supplements"); if(chk) chk.checked=false;
+          qs("#return-supplements-container")?.classList.add("hidden");
+        }
+        updateSummary();
+      });
+    })();
+
+    /* Toggle inner container when "different return" is checked */
+    const diffChk = document.getElementById("different-return-supplements");
+    if(diffChk){
+      diffChk.addEventListener("change",()=>{
+        const cont = document.getElementById("return-supplements-container");
+        if(cont){ cont.classList.toggle("hidden", !diffChk.checked); }
+      });
+    }
+
+    /* Google Maps */
+    let gmapsReady=false; let directionsService=null;
+    function ensureMapsReady(){ if(gmapsReady) return true; if(window.google&&google.maps&&google.maps.places){ directionsService=new google.maps.DirectionsService(); gmapsReady=true; return true;} return false;}
+    let acStart=null, acEnd=null;
+    
+    /* Configuration améliorée de l'autocomplete */
+    function setupAutocomplete(){
+      if(!ensureMapsReady()) return;
+      
+      const opts = { 
+        types: ['geocode', 'establishment'],
+        componentRestrictions: { country: ['ch', 'fr'] },
+        fields: ['address_components', 'formatted_address', 'geometry', 'name', 'types']
+      };
+      
+      acStart = new google.maps.places.Autocomplete(qs("#start"), opts);
+      acEnd = new google.maps.places.Autocomplete(qs("#end"), opts);
+      
+      // Détection en temps réel des changements
+      acStart.addListener('place_changed', function() {
+        checkSkiPackageAfterSelection();
+        updateSummary();
+      });
+      
+      acEnd.addListener('place_changed', function() {
+        checkSkiPackageAfterSelection();
+        updateSummary();
+      });
+
+      // Également détecter les changements manuels
+      qs("#start").addEventListener("input", checkSkiPackageFromInput);
+      qs("#end").addEventListener("input", checkSkiPackageFromInput);
+    }
+
+    /* Progress */
+    function updateProgress(n){const bar=qs("#progress-bar"); if(bar) bar.style.setProperty("--w",({1:10,2:55,3:100}[n]||10)+"%");qsa(".pstep").forEach((el,i)=>{el.classList.toggle("active", i+1<=n);});}
+    const wizard=qs("#wizard");
+    function setStep(n){wizard.classList.remove("step-1","step-2","step-3");wizard.classList.add(`step-${n}`);updateProgress(n);if(n>=2){window.scrollTo({top:0, behavior:"smooth"});}}
+
+    /* Ski Package Detection - VERSION CORRIGÉE */
+    let currentSkiPackage = null;
+
+    /* NOUVELLE FONCTION : Détection simplifiée et efficace */
+    function detectSkiPackage(startText, endText) {
+      if (!startText || !endText) return null;
+
+      const start = startText.toLowerCase().trim();
+      const end = endText.toLowerCase().trim();
+
+      // Vérifier si c'est une route (à éviter)
+      function isRouteAddress(text) {
+        return /route de |rue de |chemin de |avenue de |boulevard de |route du |rue du |chemin du /i.test(text);
+      }
+
+      if (isRouteAddress(start) || isRouteAddress(end)) {
+        return null;
+      }
+
+      // Vérifier les combinaisons Genève <-> Stations de ski
+      const isGeneve = /geneve|genève|gva|genf|geneva|aéroport de genève|genève airport/i.test(start) || 
+                       /geneve|genève|gva|genf|geneva|aéroport de genève|genève airport/i.test(end);
+      
+      if (!isGeneve) return null;
+
+      // Liste des stations avec leurs patterns de détection
+      const stationPatterns = {
+        'saint-gervais': /saint gervais|st gervais|saint-gervais/i,
+        'contamines': /contamines|contamines-montjoie/i,
+        'combloux': /combloux/i,
+        'megeve': /megeve|megève/i,
+        'la clusaz': /la clusaz|clusaz/i,
+        'grand-bornand': /grand bornand|le grand bornand/i,
+        'carroz': /carroz|les carroz/i,
+        'flaine': /flaine/i,
+        'samoens': /samoens|samoëns/i,
+        'morillon': /morillon/i,
+        'sixt': /sixt|sixt-fer-à-cheval/i,
+        'morzine': /morzine/i,
+        'gets': /gets|les gets/i,
+        'avoriaz': /avoriaz/i,
+        'praz-de-lys': /praz de lys|praz-de-lys/i,
+        'plagne': /plagne|la plagne/i,
+        'arcs': /arcs|les arcs/i,
+        'val-disere': /val disere|val-d'isère|val d'isère/i,
+        'courchevel': /courchevel/i,
+        'meribel': /meribel|méribel/i,
+        'val-thorens': /val thorens/i,
+        'rosiere': /rosière|la rosière/i,
+        'zermatt': /zermatt/i,
+        'verbier': /verbier/i,
+        'crans-montana': /crans|montana|crans-montana/i,
+        'saas-fee': /saas fee|saas-fee/i,
+        'grimentz': /grimentz|grimentz-zinal/i,
+        'villars': /villars|villars-sur-ollon/i,
+        'leysin': /leysin/i,
+        'diablerets': /diablerets|les diablerets/i,
+        'grindelwald': /grindelwald/i,
+        'wengen': /wengen/i,
+        'lauterbrunnen': /lauterbrunnen/i,
+        'murren': /murren|mürren/i,
+        'adelboden': /adelboden/i,
+        'lenk': /lenk/i,
+        'gstaad': /gstaad/i,
+        'st-moritz': /st moritz|saint moritz|st-moritz/i,
+        'davos': /davos/i,
+        'klosters': /klosters/i,
+        'arosa': /arosa/i,
+        'flims': /flims/i
+      };
+
+      for (const [station, pattern] of Object.entries(stationPatterns)) {
+        const startMatch = pattern.test(start);
+        const endMatch = pattern.test(end);
+        
+        // Si Genève et une station sont détectées dans les deux sens
+        if ((isGeneve && endMatch) || (isGeneve && startMatch)) {
+          const packageKey = `geneve-${station.replace(' ', '-')}`;
+          if (SKI_PACKAGES[packageKey]) {
+            return {
+              package: SKI_PACKAGES[packageKey],
+              key: packageKey,
+              resort: station
+            };
+          }
+        }
+      }
+      
+      return null;
+    }
+
+    /* Détection depuis l'input */
+    function checkSkiPackageFromInput() {
+      const startValue = qs("#start").value.trim();
+      const endValue = qs("#end").value.trim();
+      
+      if (startValue && endValue) {
+        currentSkiPackage = detectSkiPackage(startValue, endValue);
+        updateSkiPackageIndicator(currentSkiPackage);
+      } else {
+        currentSkiPackage = null;
+        updateSkiPackageIndicator(null);
+      }
+    }
+
+    /* Détection après sélection Google */
+    function checkSkiPackageAfterSelection() {
+      const startValue = qs("#start").value.trim();
+      const endValue = qs("#end").value.trim();
+      
+      if (startValue && endValue) {
+        // Essayer d'abord avec les places Google
+        try {
+          if (acStart && acEnd) {
+            const startPlace = acStart.getPlace();
+            const endPlace = acEnd.getPlace();
+            
+            if (startPlace && endPlace) {
+              const startText = startPlace.formatted_address || startPlace.name || startValue;
+              const endText = endPlace.formatted_address || endPlace.name || endValue;
+              
+              currentSkiPackage = detectSkiPackage(startText, endText);
+              updateSkiPackageIndicator(currentSkiPackage);
+              return;
+            }
+          }
+        } catch (error) {
+          console.log("Erreur Google Places:", error);
+        }
+        
+        // Fallback: utiliser les valeurs d'input
+        currentSkiPackage = detectSkiPackage(startValue, endValue);
+        updateSkiPackageIndicator(currentSkiPackage);
+      } else {
+        currentSkiPackage = null;
+        updateSkiPackageIndicator(null);
+      }
+    }
+
+    function updateSkiPackageIndicator(skiPackage) {
+      const indicator = qs("#ski-package-indicator");
+      const text = qs("#ski-package-text");
+      
+      if (skiPackage) {
+        indicator.classList.remove("hidden");
+        // CHANGEMENT ICI: On n'ajoute plus le nom de la station
+        text.textContent = i18n("ski_package");
+        showToast("Forfait ski détecté : " + skiPackage.resort, "success");
+      } else {
+        indicator.classList.add("hidden");
+      }
+    }
+
+    /* Pricing */
+    let lastLeg=null;
+    qs("#calc-btn").addEventListener("click", routeAndPrice);
+    async function routeAndPrice(){
+      const se=qs("#start-error"), ee=qs("#end-error");
+      if(se) se.textContent=""; if(ee) ee.textContent="";
+      const startTxt=qs("#start").value.trim(), endTxt=qs("#end").value.trim();
+      if(!startTxt){ if(se) se.textContent=i18n("t_need_start"); showToast(i18n("t_need_start"),"danger"); qs("#start").focus(); return;}
+      if(!endTxt){ if(ee) ee.textContent=i18n("t_need_end"); showToast(i18n("t_need_end"),"danger"); qs("#end").focus(); return;}
+      if(!ensureMapsReady()){showToast(i18n("t_route_fail"),"danger"); return;}
+      const btn=qs("#calc-btn"); if(btn) btn.disabled=true;
+      try{
+        const req={origin:startTxt,destination:endTxt,travelMode:"DRIVING",unitSystem:google.maps.UnitSystem.METRIC,region:"CH"};
+        const resp=await directionsService.route(req);
+        const leg=resp.routes[0].legs[0];
+        lastLeg={distance:leg.distance.value, duration:leg.duration.value};
+        const di=qs("#distance"), du=qs("#duration");
+        if(di) di.textContent=`${(lastLeg.distance/1000).toFixed(1)} km`;
+        if(du) du.textContent=`• ${Math.round(lastLeg.duration/60)} min`;
+        const prices=calcPrices(lastLeg.distance);
+        buildVehicleCards(prices);
+        showToast(i18n("t_route_ok"));
+        setStep(2);
+      }catch{ showToast(i18n("t_route_fail"),"danger"); }
+      finally{ if(btn) btn.disabled=false; }
+    }
+
+    function baseSegments(km,tiers){ for(let i=0;i<tiers.length;i++){ if(km<=tiers[i].max) return km*tiers[i].rate; } return km*tiers[tiers.length-1].rate; }
+    
+    function calcPrices(distanceMeters){
+      const km=distanceMeters/1000, pax=clampInt(qs("#passengers").value,1,8,1), isRound=qs("#round-trip").checked;
+      
+      // Vérifier si nous avons un forfait ski
+      if (currentSkiPackage) {
+        let prices = {...currentSkiPackage.package.prices};
+        
+        // Appliquer 10% de réduction pour les trajets retour
+        if (isRound) {
+          Object.keys(prices).forEach(k => {
+            if (prices[k] != null) {
+              prices[k] = round2(prices[k] * 1.9); // Prix original + 90% du retour (10% de réduction sur le retour)
+            }
+          });
+        }
+        
+        // Filtrer les véhicules selon la capacité
+        if(pax>3) prices.business=null; 
+        if(pax>4) prices.standard=null; 
+        if(pax>7) prices.van7=null;
+        
+        return prices;
+      }
+      
+      // Logique de prix originale pour les trajets non-forfait
+      let s=baseSegments(km,[{max:25,rate:3.6},{max:50,rate:3.0},{max:100,rate:2.6},{max:150,rate:2.4},{max:200,rate:2.3},{max:250,rate:2.1},{max:9999,rate:1.9}])+6.0; s=Math.max(s,53);
+      let b=baseSegments(km,[{max:25,rate:3.9},{max:50,rate:3.4},{max:75,rate:3.2},{max:100,rate:3.0},{max:150,rate:2.8},{max:200,rate:2.7},{max:250,rate:2.4},{max:9999,rate:2.3}])+8.0; b=Math.max(b,63);
+      let v7=baseSegments(km,[{max:25,rate:5.0},{max:50,rate:4.8},{max:75,rate:4.0},{max:100,rate:3.45},{max:150,rate:2.9},{max:200,rate:2.5},{max:250,rate:2.3},{max:9999,rate:2.2}])+12.0; v7=Math.max(v7,73);
+      let v8=baseSegments(km,[{max:25,rate:5.2},{max:50,rate:5.0},{max:75,rate:4.2},{max:100,rate:3.7},{max:150,rate:3.1},{max:200,rate:2.7},{max:250,rate:2.5},{max:9999,rate:2.4}])+14.0; v8=Math.max(v8,83);
+      
+      // N'appliquer le supplément aéroport que pour les trajets non-forfait
+      const isAirportStart=/airport|a[eé]roport|gva/i.test(qs("#start").value), isAirportEnd=/airport|a[eé]roport|gva/i.test(qs("#end").value);
+      if(isAirportStart && !currentSkiPackage){s+=27;b+=27;v7+=27;v8+=27;}
+      
+      const prices={standard:s,business:b,van7:v7,van8:v8};
+      
+      if(isRound){
+        const backAdj=val=>{
+          let r=val-(isAirportStart && !currentSkiPackage?27:0); 
+          if(isAirportEnd && !currentSkiPackage) r+=27; 
+          return val+(r*0.9);
+        }; 
+        Object.keys(prices).forEach(k=>prices[k]=backAdj(prices[k]));
+      }
+      
+      if(pax>3) prices.business=null; 
+      if(pax>4) prices.standard=null; 
+      if(pax>7) prices.van7=null;
+      
+      Object.keys(prices).forEach(k=>{if(prices[k]!=null) prices[k]=round2(prices[k]);});
+      return prices;
+    }
+
+    /* Vehicle cards */
+    function specsFor(k){
+      return {
+        standard:{label:i18n("v_standard"),details:i18n("v_details_standard"),img:"https://pluspng.com/img-png/tesla-png-model-s-778.png",seats:4,bags:4,premium:false},
+        business:{label:i18n("v_business"),details:i18n("v_details_business"),img:"https://primary.jwwb.nl/public/x/o/u/temp-iimyxpmteqfvhhgvlplv/logo12_11_2643-high.png?enable-io=true&fit=crop&width=1066&height=533",seats:3,bags:3,premium:true},
+        van7:{label:i18n("v_van7"),details:i18n("v_details_van7"),img:"https://primary.jwwb.nl/public/x/o/u/temp-iimyxpmteqfvhhgvlplv/logo12_11_284-high.png?enable-io=true&fit=crop&width=1066&height=533",seats:7,bags:7,premium:false},
+        van8:{label:i18n("v_van8"),details:i18n("v_details_van8"),img:"https://primary.jwwb.nl/public/x/o/u/temp-iimyxpmteqfvhhgvlplv/logo12_11_284-high.png?enable-io=true&fit=crop&width=1066&height=533",seats:8,bags:8,premium:false}
+      }[k];
+    }
+
+    function featureList(){
+      const ul=document.createElement("ul"); ul.className="features";
+      [i18n("feat_cancel"), i18n("feat_wait"), i18n("feat_door"), i18n("feat_paylater")]
+        .forEach(t=>{const li=document.createElement("li"); li.textContent=t; ul.appendChild(li);});
+      return ul;
+    }
+
+    function updateVehicleBadges(){
+      qsa(".veh-card").forEach(card=>{
+        const k=card.dataset.veh, sp=specsFor(k); if(!sp) return;
+        const name=card.querySelector(".veh-name"); if(name) name.textContent=sp.label;
+        const note=card.querySelector(".veh-note"); if(note) note.textContent=sp.details;
+        const meta=card.querySelector(".veh-meta"); if(meta){
+          meta.textContent="";
+          const mkTag=(icon,txt)=>{const span=document.createElement("span"); span.className="tag"; const i=document.createElement("i"); i.className=icon; const s=document.createTextNode(" "+txt); span.appendChild(i); span.appendChild(s); return span;};
+          meta.appendChild(mkTag("fa-solid fa-user-group", `${i18n('tag_seats')}: ${sp.seats}`));
+          meta.appendChild(mkTag("fa-solid fa-suitcase", `${i18n('tag_bags')}: ${sp.bags}`));
+          if(sp.premium) meta.appendChild(mkTag("fa-solid fa-star", i18n("tag_premium")));
+        }
+      });
+    }
+
+    function buildVehicleCards(prices){
+      const order=["standard","business","van7","van8"], list=qs("#veh-list"); list.textContent="";
+      const km = lastLeg ? (lastLeg.distance/1000).toFixed(1) : null;
+      const mins = lastLeg ? Math.round(lastLeg.duration/60) : null;
+
+      order.forEach(k=>{
+        const priceCHF=prices[k]; if(priceCHF==null) return; const sp=specsFor(k);
+        const card=document.createElement("div"); card.className="veh-card"; card.tabIndex=0; card.dataset.veh=k; card.setAttribute("role","button"); card.setAttribute("aria-label",sp.label);
+
+        const top=document.createElement("div"); top.className="veh-top";
+        const pill=document.createElement("span"); pill.className="veh-pill"; pill.textContent=sp.label;
+        const name=document.createElement("span"); name.className="veh-name";
+        top.appendChild(pill); top.appendChild(name);
+
+        // Badge forfait ski
+        if (currentSkiPackage) {
+          const skiBadge = document.createElement("span");
+          skiBadge.className = "veh-pill";
+          skiBadge.style.background = "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)";
+          skiBadge.style.marginLeft = "8px";
+          skiBadge.textContent = "❄️ Forfait";
+          top.appendChild(skiBadge);
+        }
+
+        const imgBox=document.createElement("div"); imgBox.className="veh-img";
+        const img=document.createElement("img"); img.alt=sp.label; img.src=sp.img; imgBox.appendChild(img);
+
+        const meta=document.createElement("div"); meta.className="veh-meta";
+
+        const priceEl=document.createElement("div"); priceEl.className="veh-price"; priceEl.setAttribute("data-chf",String(priceCHF)); priceEl.textContent=convertDisplay(priceCHF);
+
+        const note=document.createElement("div"); note.className="veh-note"; note.textContent=sp.details;
+
+        const cta=document.createElement("button"); cta.className="veh-cta"; cta.type="button"; cta.setAttribute("aria-label","Choisir ce véhicule");
+        cta.innerHTML='<i class="fa-solid fa-arrow-right-long"></i>';
+
+        card.appendChild(top); card.appendChild(imgBox); card.appendChild(meta); card.appendChild(priceEl); card.appendChild(note); card.appendChild(featureList());
+        if(km && mins){const extra=document.createElement("div"); extra.className="veh-note"; extra.style.marginTop="6px"; extra.textContent=`≈ ${km} km • ${mins} min`; card.appendChild(extra);}
+        card.appendChild(cta); list.appendChild(card);
+
+        card.addEventListener("mousemove",(e)=>{const r=card.getBoundingClientRect();const x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;const rx=(0.5-y)*6,ry=(x-0.5)*7; card.style.transform=`translateY(-2px) rotateX(${rx}deg) rotateY(${ry}deg)`;});
+        card.addEventListener("mouseleave",()=>{card.style.transform="";});
+        const choose=()=>selectVehicle(card);
+        card.addEventListener("click",choose);
+        cta.addEventListener("click",(ev)=>{ev.stopPropagation();choose(); setStep(3);});
+        card.addEventListener("keydown",(e)=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();choose();}});
+      });
+      updateVehicleBadges();
+      updateDisplayedPrices();
+    }
+
+    document.getElementById("back-1").addEventListener("click", function() {
+      setStep(1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    document.getElementById("back-2").addEventListener("click",()=>setStep(2));
+
+    function selectVehicle(card){
+      qsa(".veh-card").forEach(v=>v.classList.remove("selected"));
+      card.classList.add("selected");
+      card.animate([{transform:"scale(1)"},{transform:"scale(1.03)"},{transform:"scale(1)"}],{duration:320,easing:"ease-out"});
+      updateSummary(card);
+      setStep(3);
+    }
+
+    function safeText(id, value){
+      const el = qs(id);
+      if(el) el.textContent = value;
+    }
+
+    function updateSummary(card){
+      const selected=card||qs(".veh-card.selected");
+      const veh=selected?.dataset?.veh||"";
+      const priceNode=selected?selected.querySelector(".veh-price"):null;
+      const chf=priceNode?parseFloat(priceNode.getAttribute("data-chf")||""):NaN;
+
+      if(veh){
+        const label=specsFor(veh)?.label||veh.toUpperCase();
+        safeText("#sum-veh", `${i18n("sum_vehicle")}: ${label}`);
+      }
+      if(!isNaN(chf)) safeText("#sum-price", `${i18n("sum_price")}: ${convertDisplay(chf)}`);
+
+      const sv=qs("#start")?.value, ev=qs("#end")?.value, dv=qs("#date")?.value, tv=qs("#time")?.value;
+      if(sv) safeText("#sum-start", `${i18n("sum_from")}: ${sv}`);
+      if(ev){
+        const add=qs("#round-trip")?.checked? " • "+i18n("return"):"";
+        const skiAdd = currentSkiPackage ? " • ⛷ Forfait Ski" : "";
+        safeText("#sum-end", `${i18n("sum_to")}: ${ev}${add}${skiAdd}`);
+      }
+      if(dv) safeText("#sum-date", `${i18n("sum_date")}: ${dv}`);
+      if(tv) safeText("#sum-time", `${i18n("sum_time")}: ${tv}`);
+
+      if(qs("#round-trip")?.checked){
+        safeText("#sum-ret-date", `${i18n("sum_ret_date")}: ${qs("#return-date")?.value||""}`);
+        safeText("#sum-ret-time", `${i18n("sum_ret_time")}: ${qs("#return-time")?.value||""}`);
+        qs("#sum-ret-row")?.classList.remove("hidden");
+      } else {
+        qs("#sum-ret-row")?.classList.add("hidden");
+      }
+    }
+
+    /* Submit avec animation de chargement */
+    document.getElementById("submit-booking").addEventListener("click", onSubmit);
+    async function onSubmit(){
+      const setInvalid=(sel,bad)=>qs(sel).closest(".field")?.classList.toggle("invalid",bad);
+      const name=qs("#name").value.trim(), mail=qs("#email").value.trim();
+      const phoneCode=qs("#phone-code").value.trim(), phoneNum=qs("#phone").value.trim();
+      setInvalid("#name",!name);
+      setInvalid("#email",!/^\S+@\S+\.\S+$/.test(mail));
+      if(!name){showToast(i18n("t_name_req"),"danger");return;}
+      if(!/^\S+@\S+\.\S+$/.test(mail)){showToast(i18n("t_email_bad"),"danger");return;}
+      const selected=qs(".veh-card.selected"); if(!selected){showToast(i18n("t_pick_vehicle"),"danger");return;}
+
+      // Activer l'état de chargement
+      const btn = qs("#submit-booking");
+      const originalText = btn.querySelector('.button__text').innerHTML;
+      btn.classList.add("btn--loading");
+      btn.disabled = true;
+      btn.querySelector('.button__text').innerHTML = i18n("loading");
+
+      // Build payload (aligns with email.php)
+      const payload={
+        start:qs("#start").value, end:qs("#end").value,
+        passengers:qs("#passengers").value,
+        small_bags:  qs("#ob-small-bags")?.value || "0",
+        medium_bags: qs("#ob-medium-bags")?.value || "0",
+        vehicle:specsFor(selected.dataset.veh)?.label || selected.dataset.veh?.toUpperCase()||"",
+        date:qs("#date").value, time:qs("#time").value,
+        "return-date":qs("#return-date").value, "return-time":qs("#return-time").value,
+        price_final:selected.querySelector(".veh-price")?.textContent||"",
+        distance_final:qs("#distance").textContent, duration_final:qs("#duration").textContent,
+        lang:currentLanguage, full_name:name, email_address:mail,
+        phone_code:phoneCode, phone_number:phoneNum,
+        flight_number:qs("#flight").value, comments:qs("#comments").value,
+        child_seat:qs("#child-seat-yes")?.checked?"yes":"no",
+        sports_equipment:qs("#sports-equipment-yes")?.checked?"yes":"no",
+        currency:currentCurrency,
+        ski_package: currentSkiPackage ? currentSkiPackage.key : "none"
+      };
+
+      // Round-trip flags/supplements
+      const isRound = qs("#round-trip").checked;
+      const diffRet = qs("#different-return-supplements")?.checked;
+      payload.round_trip = isRound ? "yes" : "no";
+      payload.different_return_supplements = (isRound && diffRet) ? "yes" : "no";
+      if(isRound && diffRet){
+        payload.return_small_bags = qs("#return-small-bags")?.value || "0";
+        payload.return_medium_bags = qs("#return-medium-bags")?.value || "0";
+        payload.return_child_seat = qs("#return-child-seat-yes")?.checked ? "yes" : "no";
+        payload.return_sports_equipment = qs("#return-sports-equipment-yes")?.checked ? "yes" : "no";
+      }
+
+      const note=qs("#booking-note"); if(note) note.textContent="…";
+      try{
+        const res=await fetch(EMAIL_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+        if (res.status===301||res.status===302){if(note) note.textContent=i18n("t_301"); showToast(i18n("t_301"),"danger"); return;}
+        const js=await res.json().catch(()=>({ok:false,message:"Bad JSON"}));
+        if(js.ok){
+          if(note) note.textContent=i18n("t_send_ok"); 
+          showToast(i18n("t_send_ok"));
+          
+          // REDIRECTION AJOUTÉE ICI - Après 3 secondes
+          setTimeout(() => {
+            window.location.href = "https://www.taxis24.ch/merci";
+          }, 3000);
+          
+          // Réinitialiser le bouton après succès
+          setTimeout(() => {
+            btn.classList.remove("btn--loading");
+            btn.disabled = false;
+            btn.querySelector('.button__text').innerHTML = originalText;
+          }, 2000);
+        }
+        else{
+          if(note) note.textContent=(js.message||i18n("t_send_fail")); 
+          showToast(i18n("t_send_fail"),"danger");
+          // Réinitialiser le bouton après erreur
+          btn.classList.remove("btn--loading");
+          btn.disabled = false;
+          btn.querySelector('.button__text').innerHTML = originalText;
+        }
+      }catch{
+        if(note) note.textContent=i18n("t_net_fail"); 
+        showToast(i18n("t_net_fail"),"danger");
+        // Réinitialiser le bouton après erreur réseau
+        btn.classList.remove("btn--loading");
+        btn.disabled = false;
+        btn.querySelector('.button__text').innerHTML = originalText;
+      }
+    }
+
+    /* Init */
+    (function init(){
+      const trySetup=()=>{ if(ensureMapsReady()) { setupAutocomplete(); } else setTimeout(trySetup,250); }; trySetup();
+      const now=new Date(), pad=n=>String(n).padStart(2,"0");
+      const yyyy=now.getFullYear(),mm=pad(now.getMonth()+1),dd=pad(now.getDate()),hh=pad(now.getHours()),mi=pad(now.getMinutes());
+      qs("#date").value=`${yyyy}-${mm}-${dd}`; qs("#time").value=`${hh}:${mi}`;
+      qs("#date").min=`${yyyy}-${mm}-${dd}`; qs("#return-date").min=`${yyyy}-${mm}-${dd}`;
+      const tmr=new Date(now.getTime()+86400000); qs("#return-date").value=`${tmr.getFullYear()}-${pad(tmr.getMonth()+1)}-${pad(tmr.getDate())}`;
+
+      setLang("fr"); setStep(1);
+      updateSummary();
+    })();
+  })();
+  </script>
+</body>
+</html>
